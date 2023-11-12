@@ -5,6 +5,8 @@ set -eo pipefail
 echo "Job started: $(date)"
 
 DATE=$(date +%Y%m%d_%H%M%S)
+FILENAME=backup-$DATE.tar.gz
+S3_KEY=${TARGET_S3_FOLDER%/}/$FILENAME
 
 if [[ -z "$TARGET_FOLDER" ]]; then
     # dump directly to AWS S3
@@ -14,20 +16,18 @@ if [[ -z "$TARGET_FOLDER" ]]; then
         exit 1
     fi
 
-    mongodump --uri "$MONGO_URI" --gzip --archive | /usr/local/bin/aws s3 cp - "${TARGET_S3_FOLDER%/}/backup-$DATE.tar.gz"
+    mongodump --uri "$MONGO_URI" --gzip --archive | /usr/local/bin/aws s3 cp - $S3_KEY
     echo "Mongo dump uploaded to $TARGET_S3_FOLDER"
 else
     # save dump locally (and optionally to AWS S3)
-
-    FILE="$TARGET_FOLDER/backup-$DATE.tar.gz"
-
-    mkdir -p "$TARGET_FOLDER"
-    mongodump --uri "$MONGO_URI" --gzip --archive="$FILE"
-    echo "Mongo dump saved to $FILE"
+    mkdir -p $TARGET_FOLDER
+    cd $TARGET_FOLDER
+    mongodump --uri "$MONGO_URI" --gzip --archive="$FILENAME"
+    echo "Mongo dump saved to $FILENAME"
 
     if [[ -n "$TARGET_S3_FOLDER" ]]; then
-        /usr/local/bin/aws s3 cp "$FILE" "$TARGET_S3_FOLDER"
-        echo "$FILE uploaded to $TARGET_S3_FOLDER"
+        /usr/local/bin/aws s3 cp $FILENAME $S3_KEY
+        echo "$FILENAME uploaded to $S3_KEY"
     fi
 fi
 
