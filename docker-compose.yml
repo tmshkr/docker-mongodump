@@ -1,0 +1,10 @@
+version: "3"
+
+services:
+  mongo-backup:
+    build:
+      context: .
+    env_file: .env
+    environment:
+      CRON_SCHEDULE: "* * * * *"
+      TARGET_FOLDER: "/backup"
